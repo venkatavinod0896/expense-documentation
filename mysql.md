@@ -1,60 +1,78 @@
 # MySQL
 
-Developer has chosen the database MySQL. Hence, we are trying to install it up and configure it.
+The developer has chosen MySQL as the database. We need to install, configure, and load the schema.
 
-**Versions of the DB Software you will get context from the developer, Meaning we need to check with developer.**
+> **Check with the developer for the exact version required. This setup uses MySQL 8.0.x.**
 
-Install MySQL Server 8.0.x
+---
 
-```
+## Install
+
+```bash
 dnf install mysql-server -y
 ```
 
-Start MySQL Service
+## Configure
 
-```
+Enable and start the MySQL service:
+
+```bash
 systemctl enable mysqld
-```
-```
 systemctl start mysqld
 ```
 
-Next, We need to change the default root password in order to start using the database service. Use password ExpenseApp@1 or any other as per your choice.
+Set the root password (use `ExpenseApp@1` or a password of your choice):
 
-```
+```bash
 mysql_secure_installation --set-root-pass ExpenseApp@1
 ```
 
+---
+
+## Load Schema
+
+Install the MySQL client on the **backend server** to load the schema remotely:
+
+```bash
+dnf install mysql -y
+```
+
+Load the schema (replace `<MYSQL-SERVER-IPADDRESS>` with the private IP of the DB EC2):
+
+```bash
+mysql -h <MYSQL-SERVER-IPADDRESS> -u root -pExpenseApp@1 < /app/schema/backend.sql
+```
+
+This creates the `transactions` database, the `transactions` table, and the `expense` application user.
+
+---
+
 ## Verification
 
-We can check data by using client package called mysql.
+Connect to MySQL from the same server:
 
-Usually command to connect mysql server is
-
-```
-mysql -h <host-address> -u root -p<password>
+```bash
+mysql -u root -pExpenseApp@1
 ```
 
-But if your client and server both are in a single server, you can simply issue.
+Connect remotely from another server:
 
-```
-mysql
-```
-
-Once you got mysql prompt, you can use below command to check schemas/databases exist.
-
-```
-show databases;
+```bash
+mysql -h <MYSQL-SERVER-IPADDRESS> -u root -pExpenseApp@1
 ```
 
-Once you are in particular schema, you can get the list of tables.
+Check databases and tables:
 
-```
-show tables;
+```sql
+SHOW DATABASES;
+USE transactions;
+SHOW TABLES;
+DESCRIBE transactions;
+SELECT * FROM transactions;
 ```
 
-You can get entries of a table using
+---
 
-```
-select * from <table_name>;
-```
+## Security Group
+
+Ensure the DB EC2 security group allows **inbound TCP on port 3306** from the backend EC2's security group (not from the internet).

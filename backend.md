@@ -1,119 +1,142 @@
-### Backend
-Backend service is responsible for adding the given values to database. Backend service is written in NodeJS, Hence we need to install NodeJS.
+# Backend
 
-**Developer has chosen NodeJs, Check with developer which version of NodeJS is needed. Developer has set a context that it can work with NodeJS >20**
+The backend service is responsible for handling API requests and persisting data to the database. It is written in Node.js.
 
-Install NodeJS, By default NodeJS 16 is available, We would like to enable 20 version and install this.
+> **Check with the developer for the exact version required. This setup requires Node.js >= 20.**
 
-**You can list modules by using dnf module list**
+---
 
-```
+## Install Node.js
+
+By default, Node.js 16 is available on the system. Enable and install version 20:
+
+```bash
 dnf module disable nodejs -y
-```
-```
 dnf module enable nodejs:20 -y
-```
-
-```
 dnf install nodejs -y
 ```
 
-Configure the application.
+Verify:
 
-Add application User
+```bash
+node -v
 ```
+
+---
+
+## Create Application User
+
+Add a system user to run the application (no login shell, no home directory access):
+
+```bash
 useradd --system --home /app --shell /sbin/nologin --comment "expense system user" expense
 ```
 
-User expense is a function / daemon user to run the application. Apart from that we don't use this user to login to server.
+---
 
-Also, username expense has been picked because it more suits to our project name.
+## Set Up Application Directory
 
-We keep application in one standard location. This is a usual practice that runs in the organization.
-
-Lets setup an app directory.
-
-```
+```bash
 mkdir /app
 ```
 
-Download the application code to created app directory.
+---
 
-```
+## Download and Extract Application
+
+```bash
 curl -o /tmp/backend.tar.gz https://raw.githubusercontent.com/daws-90s/expense-documentation/refs/heads/main/artifacts/expense-backend-v3.tar.gz
 ```
-```
+
+Extract files directly into `/app` (no subfolder):
+
+```bash
 cd /app
-```
-```
-tar -xzf /tmp/backend.tar.gz
+tar -xzf /tmp/backend.tar.gz --strip-components=1
 ```
 
-Every application is developed by development team will have some common softwares that they use as libraries. This application also have the same way of defined dependencies in the application configuration.
+---
 
-Lets download the dependencies.
+## Install Dependencies
 
-```
+```bash
 cd /app
-```
-```
 npm install
 ```
 
-We need to setup a new service in systemd so systemctl can manage this service
+---
 
-Setup SystemD Expense Backend Service
-```
-vim /etc/systemd/system/backend.service
-```
+## Configure SystemD Service
 
-```
+Create the service file:
+
+```bash
+cat > /etc/systemd/system/backend.service << 'EOF'
 [Unit]
-Description = Backend Service
+Description=Expense Backend Service
+After=network.target
 
 [Service]
 User=expense
-Environment=DB_HOST="<MYSQL-SERVER-IPADDRESS>"
+Environment=DB_HOST=<MYSQL-SERVER-IPADDRESS>
+Environment=DB_USER=expense
+Environment=DB_PWD=ExpenseApp@1
+Environment=DB_DATABASE=transactions
 ExecStart=/bin/node /app/index.js
 SyslogIdentifier=backend
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
-**NOTE: Ensure you replace <MYSQL-SERVER-IPADDRESS> with IP address**
+> **Replace `<MYSQL-SERVER-IPADDRESS>` with the private IP of the MySQL EC2 instance.**
 
-Load the service.
+---
 
-```
-systemctl daemon-reload
-```
+## Load Database Schema
 
-For this application to work fully functional we need to load schema to the Database.
-
-We need to load the schema. To load schema we need to install mysql client.
-
-To have it installed we can use
-
-```
+```bash
 dnf install mysql -y
+mysql -h <MYSQL-SERVER-IPADDRESS> -u root -pExpenseApp@1 < /app/schema/backend.sql
 ```
 
-Load Schema
+---
 
-```
-mysql -h <MYSQL-SERVER-IPADDRESS> -uroot -pExpenseApp@1 < /app/schema/backend.sql
-```
+## Start the Service
 
-Restart the service.
-```
-systemctl restart backend
-```
-
-Start the service.
-```
+```bash
+systemctl daemon-reload
+systemctl enable backend
 systemctl start backend
 ```
+
+---
+
+## Verification
+
+Check service status:
+
+```bash
+systemctl status backend
 ```
-systemctl enable backend
+
+Check application logs:
+
+```bash
+journalctl -u backend -f
 ```
+
+Test the health endpoint (from the same server):
+
+```bash
+curl http://localhost:8080/health
+```
+
+---
+
+## Security Group
+
+Ensure the backend EC2 security group allows **inbound TCP on port 8080** from the frontend EC2's security group only (not from the internet).
