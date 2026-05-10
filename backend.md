@@ -24,22 +24,37 @@ node -v
 
 ---
 
-## Create Application User
-
-Add a system user to run the application (no login shell, no home directory access):
-
-```bash
-useradd --system --home /app --shell /sbin/nologin --comment "expense system user" expense
-```
-
----
-
 ## Set Up Application Directory
 
 ```bash
 mkdir /app
 ```
 
+---
+
+## Create Application User
+
+Add a system user to run the application:
+
+```bash
+useradd --system --home /app --shell /sbin/nologin --comment "expense system user" expense
+```
+
+**Why a system user?**
+
+System users (UID 1–999) are created exclusively to run services — not for human login. Compared to normal users they provide:
+
+- **No login access** — `/sbin/nologin` shell blocks any interactive login, reducing attack surface.
+- **No password** — cannot be brute-forced via SSH.
+- **Least privilege** — only owns the files it needs; a compromised service can't touch the rest of the system.
+- **Process accountability** — `ps aux` clearly shows `expense` owns the backend process, making auditing easy.
+
+Normal users start at UID 1000. You can verify this user was created as a system user:
+
+```bash
+id expense
+grep expense /etc/passwd
+```
 ---
 
 ## Download and Extract Application
