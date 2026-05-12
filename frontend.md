@@ -49,7 +49,10 @@ tar -xzf /tmp/frontend.tar.gz --strip-components=1
 Create a reverse proxy config that forwards `/api/` requests to the backend:
 
 ```bash
-cat > /etc/nginx/default.d/expense.conf << 'EOF'
+vim /etc/nginx/default.d/expense.conf
+```
+
+```bash
 proxy_http_version 1.1;
 proxy_set_header Host              $host;
 proxy_set_header X-Real-IP         $remote_addr;
@@ -64,7 +67,6 @@ location /health {
     stub_status on;
     access_log off;
 }
-EOF
 ```
 
 > **Replace `<BACKEND-PRIVATE-IP>` with the private IP of the backend EC2 instance.**

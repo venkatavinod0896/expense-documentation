@@ -86,7 +86,10 @@ npm install
 Create the service file:
 
 ```bash
-cat > /etc/systemd/system/backend.service << 'EOF'
+vim /etc/systemd/system/backend.service
+````
+
+```bash
 [Unit]
 Description=Expense Backend Service
 After=network.target
@@ -104,7 +107,6 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-EOF
 ```
 
 > **Replace `<MYSQL-SERVER-IPADDRESS>` with the private IP of the MySQL EC2 instance.**
